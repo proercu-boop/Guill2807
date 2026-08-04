@@ -217,10 +217,6 @@ td.num{text-align:right;font-family:var(--font-cond);font-size:12px;font-weight:
 
     <!-- ====== DASHBOARD ====== -->
     <div class="panel active" id="panel-dashboard">
-      <div class="sec-title">KPI Summary — Datos más recientes</div>
-      <div class="kpi-grid" id="kpi-grid-main">
-        <!-- Populated by JS -->
-      </div>
       <div class="sec-title">Incoming Performance — Vista Rápida</div>
       <div class="chart-grid g2">
         <div class="chart-card">
@@ -292,12 +288,17 @@ td.num{text-align:right;font-family:var(--font-cond);font-size:12px;font-weight:
           <canvas id="ch-demurrage" height="215"></canvas>
         </div>
       </div>
-      <div class="sec-title">WH Accuracy &amp; Downtime — Por Fase</div>
+      <div class="sec-title">WH Accuracy &amp; Downtime — Por Área</div>
       <div class="chart-grid g2">
         <div class="chart-card">
-          <div class="chart-card-title">WH Accuracy Sub Total (%)</div>
-          <div class="chart-desc">Precisión del inventario físico versus el registro en sistema para las 3 fases del almacén. Un valor cercano al 100% garantiza confiabilidad en la planificación de producción.</div>
-          <div class="legend"><div class="leg-item"><div class="leg-dot" style="background:#2563EB"></div>Ph1</div><div class="leg-item"><div class="leg-dot" style="background:#059669"></div>Ph2</div><div class="leg-item"><div class="leg-dot" style="background:#D97706"></div>Ph3</div></div>
+          <div class="chart-card-title">WH Accuracy — Por Área (%)</div>
+          <div class="chart-desc">Precisión del inventario físico versus registro en sistema desglosada por área: High Rack Ph1-2, High Rack Ph3, Prototypes e Incoming Areas. Permite identificar qué área específica genera desviaciones.</div>
+          <div class="legend">
+            <div class="leg-item"><div class="leg-dot" style="background:#2563EB"></div>High Rack Ph1-2</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#059669"></div>High Rack Ph3</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#D97706"></div>Prototypes</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#7C3AED"></div>Incoming Areas</div>
+          </div>
           <canvas id="ch-wh-accuracy-phases" height="215"></canvas>
         </div>
         <div class="chart-card">
@@ -647,6 +648,8 @@ const DEFAULT_DATA = {
   whAccPh1:          [1,1,1,1,1,1,1,1,0.999,1,1,1,1,1,1,1,1,1,1,0.9991,1,0.9992,0.9968,0.9959,0.998,0.9966,0.9996,0.9995,0.9962,0.997,0.9972,null,null,null,null],
   whAccPh2:          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,null,null,null,null],
   whAccPh3:          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9993,1,0.9993,1,0.9994,0.9986,1,0.9972,0.9982,0.9975,0.9994,0.9984,0.9987,0.9966,0.9956,0.9976,0.9921,null,null,null,null],
+  whAccPrototypes:   [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  whAccIncoming:     [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
   whDtPh1:           [0,0.0016,0.00063,0.001304,0.000467,0.001593,0,0.001556,0.001704,0.002081,0.005007,0.00283,0.002237,0.001015,0.000319,0.000311,0.001748,0.00343,0.000504,0.00063,0.001215,0.00023,0,0.000904,0.000459,0.000444,0.004889,0.0017,0.0026,0.006785,0.001193,null,null,null,null],
   whDtPh2:           [0,0.0023,0.000524,0.001858,0.000425,0.007312,0.000721,0.000316,0.002925,0.000119,0.000504,0.00166,0.000208,0,0.001126,0.00087,0.000534,0.000534,0.000543,0.0017,0.000148,0.001186,0,0,0.001581,0.001225,0.000632,0.0012,0.0017,0.002105,0.001611,null,null,null,null],
   whDtPh3:           [0,0.0014,0.000838,0,0.00033,0.001752,0.001524,0,0.000952,0,0.005613,0.002184,0.003276,0.002768,0.000292,0.000292,0.006629,0.006794,0.002222,0.001397,0.000152,0.001219,0.00127,0.000229,0.002337,0.001905,0.001968,0.0026,0.002044,0.005879,0.000927,null,null,null,null],
@@ -766,8 +769,10 @@ function parseExcelData(raw, sheetName, fileName){
       hunit9010:         getRow(findRow("9010 H/Unit")),
       demurrage:         getRow(findRow("Demurrage")),
       whAccPh1:          getRow(findRow("High Rack,Phase1")),
-      whAccPh2:          getRow(findRow("High Rack,Phase3")-1>0?findRow("High Rack,Phase3")-1:findRow("High Rack,Phase1")+1),
-      whAccPh3:          getRow(findRow("High Rack,Phase3")),
+      whAccPh2:          getRow(findRow("High Rack,Phase3")),
+      whAccPh3:          getRow(findRow("High Rack,Phase3")), // kept for legacy compat
+      whAccPrototypes:   getRow(findRow("Prototypes")),
+      whAccIncoming:     getRow(findRow("Incoming Areas Accuracy")),
       whDtPh1:           getRow(findRow("Phase1",findRow("Downtime"))),
       whDtPh2:           getRow(findRow("Phase2",findRow("Downtime"))),
       whDtPh3:           getRow(findRow("Phase3",findRow("Downtime"))),
@@ -1028,50 +1033,10 @@ const DEFAULT_TARGETS = {
 let T = JSON.parse(JSON.stringify(DEFAULT_TARGETS));
 
 // ============================================================
-// KPI CARDS BUILDER
+// KPI CARDS BUILDER — removed from dashboard (cards hidden per user request)
 // ============================================================
 function buildKPICards(){
-  const W=D.weeks||DEFAULT_DATA.weeks;
-  const last=W.length-1;
-  const prev=Math.max(0,last-1);
-  const get=(arr,i)=>arr&&arr[i]!=null?arr[i]:null;
-  const pct=(v,d=1)=>v!=null?(v*100).toFixed(d)+'%':'—';
-  const eur=(v)=>v!=null?'€'+Math.round(v).toLocaleString('de-DE'):'—';
-  const num=(v)=>v!=null?Math.round(v)+'':'—';
-  const delta=(c,p,higher=true)=>{
-    if(c==null||p==null)return{txt:'—',cls:'neu'};
-    const d=((c-p)/Math.abs(p||1)*100).toFixed(1);
-    const up=higher?c>p:c<p;
-    return{txt:(d>0?'↑ +':'↓ ')+d+'% vs sem ant',cls:up?'up':'dn'};
-  };
-  const ia=get(D.incomingAccuracy,last);
-  const fr=get(D.frTotal,last);
-  const smA=get(D.smAccTotal,last);
-  const whhc=get(D.whHC,last);
-  const dem=get(D.demurrage,last);
-  const thc=get(D.totalHC,last);
-  const d1=delta(ia,get(D.incomingAccuracy,prev),true);
-  const d2=delta(fr,get(D.frTotal,prev),true);
-  const d3=delta(smA,get(D.smAccTotal,prev),true);
-  const d4=delta(whhc,get(D.whHC,prev),true);
-  const cards=[
-    {lbl:'Incoming Plan Accuracy',val:pct(ia),cls:ia!=null&&ia>=T.incomingAccuracy?'green':'red',d:d1,sub:W[last]+' · Target '+(T.incomingAccuracy*100).toFixed(0)+'%'},
-    {lbl:'Fill Rate Sub Total',val:pct(fr),cls:fr!=null&&fr>=T.frTotal?'green':'amber',d:d2,sub:W[last]+' · Target '+(T.frTotal*100).toFixed(1)+'%'},
-    {lbl:'SM Accuracy Sub Total',val:pct(smA,2),cls:smA!=null&&smA>=T.smAccuracy?'green':'red',d:d3,sub:W[last]+' · Target '+(T.smAccuracy*100).toFixed(1)+'%'},
-    {lbl:'WH Head Count',val:num(whhc),cls:whhc!=null&&whhc>=T.whHC?'green':'amber',d:d4,sub:W[last]+' · Plan: '+T.whHC},
-    {lbl:'WH Accuracy Ph1',val:pct(get(D.whAccPh1,last),2),cls:'green',d:{txt:'Target '+(T.whAccuracy*100).toFixed(1)+'%',cls:'neu'},sub:''},
-    {lbl:'SM Downtime Total',val:pct(get(D.smDtTotal,last),2),cls:get(D.smDtTotal,last)!=null&&get(D.smDtTotal,last)<=T.smDowntime?'green':'red',d:{txt:'Target ≤'+(T.smDowntime*100).toFixed(1)+'%',cls:'neu'},sub:W[last]},
-    {lbl:'Demurrage Cost',val:eur(dem),cls:dem!=null&&dem<=T.demurrage?'green':'red',d:{txt:'Target: €'+T.demurrage.toLocaleString('de-DE'),cls:'neu'},sub:W[last]},
-    {lbl:'Total Logistics HC',val:num(thc),cls:thc!=null&&thc>=444?'green':'amber',d:{txt:'Plan: 444',cls:'neu'},sub:''},
-  ];
-  const grid=document.getElementById('kpi-grid-main');
-  grid.innerHTML=cards.map(c=>`
-    <div class="kpi ${c.cls}">
-      <div class="kpi-lbl">${c.lbl}</div>
-      <div class="kpi-val ${c.cls}">${c.val}</div>
-      <div class="kpi-delta ${c.d.cls}">${c.d.txt}</div>
-      <div class="kpi-sub">${c.sub}</div>
-    </div>`).join('');
+  // KPI summary cards removed from dashboard panel — function kept to avoid errors
 }
 
 // ============================================================
@@ -1129,9 +1094,10 @@ function buildTables(){
     {cat:'Incoming',kpi:'Classifiers (GR)',            tgt:'0',     data:D.classifiers},
     {cat:'Incoming',kpi:'9010 H/Unit Avg',             tKey:'hunit9010', tDisplay:numStr(T.hunit9010), data:D.hunit9010},
     {cat:'Incoming',kpi:'Demurrage Cost (€)',          tKey:'demurrage', tDisplay:eurStr(T.demurrage), data:D.demurrage},
-    {cat:'Accuracy',kpi:'Phase 1 (%)',                 tKey:'whAccuracy', tDisplay:pctStr(T.whAccuracy), data:D.whAccPh1},
-    {cat:'Accuracy',kpi:'Phase 2 (%)',                 tKey:'whAccuracy', tDisplay:pctStr(T.whAccuracy), data:D.whAccPh2},
-    {cat:'Accuracy',kpi:'Phase 3 (%)',                 tKey:'whAccuracy', tDisplay:pctStr(T.whAccuracy), data:D.whAccPh3},
+    {cat:'Accuracy',kpi:'High Rack Ph1-2 (%)',          tKey:'whAccuracy', tDisplay:pctStr(T.whAccuracy), data:D.whAccPh1},
+    {cat:'Accuracy',kpi:'High Rack Ph3 (%)',             tKey:'whAccuracy', tDisplay:pctStr(T.whAccuracy), data:D.whAccPh2},
+    {cat:'Accuracy',kpi:'Prototypes (%)',                tKey:'whAccuracy', tDisplay:pctStr(T.whAccuracy), data:D.whAccPrototypes},
+    {cat:'Accuracy',kpi:'Incoming Areas (%)',            tKey:'whAccuracy', tDisplay:pctStr(T.whAccuracy), data:D.whAccIncoming},
     {cat:'Downtime',kpi:'Phase 1 (%)',                 tKey:'whDowntime', tDisplay:pctStr(T.whDowntime), data:D.whDtPh1},
     {cat:'Downtime',kpi:'Phase 2 (%)',                 tKey:'whDowntime', tDisplay:pctStr(T.whDowntime), data:D.whDtPh2},
     {cat:'Downtime',kpi:'Phase 3 (%)',                 tKey:'whDowntime', tDisplay:pctStr(T.whDowntime), data:D.whDtPh3},
@@ -1228,7 +1194,12 @@ function drawAllCharts(){
   drawBar('ch-classifiers',W,[{data:nn(D.classifiers),color:'#D97706'}],0,800,num);
   drawBar('ch-9010',W,[{data:nn(D.hunit9010),color:'#2563EB'}],0,2000,num,{target:T.hunit9010,targetColor:'#EF4444'});
   drawBar('ch-demurrage',W,[{data:nn(D.demurrage),color:'#C8102E'}],0,5200,eur,{target:T.demurrage,targetColor:'#D97706'});
-  drawLine('ch-wh-accuracy-phases',W,[{data:D.whAccPh1,color:'#2563EB'},{data:D.whAccPh2,color:'#059669'},{data:D.whAccPh3,color:'#D97706'}],0.997,1.001,v=>(v*100).toFixed(2)+'%',{target:T.whAccuracy,targetColor:'#EF4444'});
+  drawLine('ch-wh-accuracy-phases',W,[
+    {data:D.whAccPh1,color:'#2563EB'},
+    {data:D.whAccPh2,color:'#059669'},
+    {data:D.whAccPrototypes,color:'#D97706'},
+    {data:D.whAccIncoming,color:'#7C3AED'}
+  ],0.990,1.001,v=>(v*100).toFixed(2)+'%',{target:T.whAccuracy,targetColor:'#EF4444'});
   drawLine('ch-wh-downtime-phases',W,[{data:D.whDtPh1,color:'#2563EB'},{data:D.whDtPh2,color:'#059669'},{data:D.whDtPh3,color:'#D97706'}],0,0.006,pct2,{target:T.whDowntime,targetColor:'#EF4444'});
   drawLine('ch-wh-hc',W,[{data:D.whHC,color:'#2563EB'}],80,110,num,{target:T.whHC,targetColor:'#C8102E'});
   drawBar('ch-wh-ot',W,[{data:nn(D.whOT),color:'#6366F1'}],0,600,num);
